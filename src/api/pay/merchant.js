@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
 export default {
-  BASE_URL: 'api/pay/platform',
+  BASE_URL: 'api/pay/merchant',
 
   add: function(data) {
     return request({
@@ -10,6 +10,7 @@ export default {
       data
     })
   },
+
   del: function(ids) {
     return request({
       url: this.BASE_URL,
@@ -17,18 +18,12 @@ export default {
       data: ids
     })
   },
+
   edit: function(data) {
     return request({
       url: this.BASE_URL,
       method: 'put',
       data
-    })
-  },
-  query: function(data) {
-    return request({
-      url: this.BASE_URL,
-      method: 'get',
-      params: data
     })
   }
 }

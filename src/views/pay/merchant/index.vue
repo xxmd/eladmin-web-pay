@@ -4,17 +4,31 @@
     <div class="head-container">
       <div v-if="crud.props.searchToggle">
         <el-form inline>
-          <el-form-item label="平台名称">
-            <el-input v-model="query.name" clearable/>
+          <el-form-item label="归属平台">
+            <el-select
+              v-model="query.platformId"
+              filterable
+              clearable
+              remote
+              reserve-keyword
+              placeholder=""
+              :remote-method="loadPlatformOptions"
+              :loading="platformLoading"
+            >
+              <el-option
+                v-for="item in platformOptions"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
+              >
+              </el-option>
+            </el-select>
           </el-form-item>
-          <el-form-item label="平台网站">
-            <el-input v-model="query.website" clearable/>
+          <el-form-item label="商户id">
+            <el-input v-model="query.merchantId" clearable/>
           </el-form-item>
-          <el-form-item label="平台接口">
-            <el-input v-model="query.endpoint" clearable/>
-          </el-form-item>
-          <el-form-item label="联系方式">
-            <el-input v-model="query.contact" clearable/>
+          <el-form-item label="md5密钥">
+            <el-input v-model="query.md5SecretKey" clearable/>
           </el-form-item>
           <el-form-item label="更新时间">
             <date-range-picker v-model="query.updateTime"/>
@@ -34,17 +48,30 @@
       width="500px"
     >
       <el-form ref="form" :model="form" :rules="rules" size="small" label-width="80px">
-        <el-form-item label="平台名称" prop="name">
-          <el-input v-model="form.name"/>
+        <el-form-item label="归属平台" prop="platform.id">
+          <el-select
+            v-model="form.platform.id"
+            filterable
+            remote
+            reserve-keyword
+            placeholder=""
+            :remote-method="loadPlatformOptions"
+            :loading="platformLoading"
+          >
+            <el-option
+              v-for="item in platformOptions"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            >
+            </el-option>
+          </el-select>
         </el-form-item>
-        <el-form-item label="平台网址" prop="website">
-          <el-input v-model="form.website"/>
+        <el-form-item label="商户id" prop="merchantId">
+          <el-input v-model="form.merchantId"/>
         </el-form-item>
-        <el-form-item label="平台接口" prop="endpoint">
-          <el-input v-model="form.endpoint"/>
-        </el-form-item>
-        <el-form-item label="联系方式" prop="contact">
-          <el-input v-model="form.contact"/>
+        <el-form-item label="md5密钥" prop="md5SecretKey">
+          <el-input v-model="form.md5SecretKey"/>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea"/>
@@ -59,7 +86,6 @@
     <el-table
       ref="table"
       v-loading="crud.loading"
-      lazy
       :data="crud.data"
       row-key="id"
       @select="crud.selectChange"
@@ -67,11 +93,9 @@
       @selection-change="crud.selectionChangeHandler"
     >
       <el-table-column type="selection" width="55"/>
-      <el-table-column label="平台名称" prop="name"/>
-      <el-table-column label="平台网址" prop="website"/>
-      <el-table-column label="平台接口" prop="endpoint"/>
-      <el-table-column label="联系方式" prop="contact"/>
-      <el-table-column label="商户数量" prop="merchantList.length"/>
+      <el-table-column label="归属平台" prop="platform.name"/>
+      <el-table-column label="商户id" prop="merchantId"/>
+      <el-table-column label="md5密钥" prop="md5SecretKey"/>
       <el-table-column label="备注" prop="remark"/>
       <el-table-column prop="updateTime" label="更新时间"/>
       <el-table-column prop="updateBy" label="更新者"/>
@@ -85,7 +109,6 @@
           <udOperation
             :data="scope.row"
             :permission="permission"
-            :disabled-dle="scope.row.merchantList.length > 0"
           />
         </template>
       </el-table-column>
@@ -94,17 +117,19 @@
 </template>
 
 <script>
-import crudItem from '@/api/pay/platform'
+import crudItem from '@/api/pay/merchant'
+import crudPlatform from '@/api/pay/platform'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import CRUD, { presenter, header, form, crud } from '@crud/crud'
 import rrOperation from '@crud/RR.operation'
 import crudOperation from '@crud/CRUD.operation'
 import udOperation from '@crud/UD.operation'
 import DateRangePicker from '@/components/DateRangePicker'
+import { error } from 'autoprefixer/lib/utils'
 
-const defaultForm = { id: null, name: null, endpoint: null, website: null, contact: null, remark: null }
+const defaultForm = { id: null, platform: { id: null }, merchantId: null, md5SecretKey: null, remark: null }
 export default {
-  name: 'Platform',
+  name: 'Merchant',
   components: { crudOperation, rrOperation, udOperation, DateRangePicker },
   cruds() {
     return CRUD({ title: '', url: crudItem.BASE_URL, crudMethod: { ...crudItem } })
@@ -114,28 +139,44 @@ export default {
   dicts: ['dept_status'],
   data() {
     return {
+      platformLoading: false,
+      platformOptions: [],
       rules: {
-        name: [
-          { required: true, message: '请输入平台名称', trigger: 'blur' }
+        'platform.id': [
+          { required: true, message: '请选择归属平台', trigger: 'select' }
         ],
-        endpoint: [
-          { required: true, message: '请输入接口地址', trigger: 'blur' }
+        merchantId: [
+          { required: true, message: '请输入商户id', trigger: 'blur' }
         ],
-        website: [
-          { required: true, message: '请输入平台网站', trigger: 'blur' }
-        ],
-        contact: [
-          { required: true, message: '请输入联系方式', trigger: 'blur' }
+        md5SecretKey: [
+          { required: true, message: '请输入md5密钥', trigger: 'blur' }
         ]
       },
       permission: {
-        add: ['admin', 'pay:platform:create'],
-        edit: ['admin', 'pay:platform:update'],
-        del: ['admin', 'pay:platform:delete']
+        add: ['admin', 'pay:merchant:create'],
+        edit: ['admin', 'pay:merchant:update'],
+        del: ['admin', 'pay:merchant:delete']
       }
     }
   },
-  methods: {}
+  created() {
+    this.loadPlatformOptions(null);
+  },
+  methods: {
+    loadPlatformOptions(query) {
+      crudPlatform.query({
+        name: query
+      }).then(res => {
+        this.platformOptions = res.content;
+      }).catch(error => {
+        this.$notify.error({
+          title: '查询平台列表异常',
+          message: error.message,
+          duration: 0
+        })
+      })
+    }
+  }
 }
 </script>
 
