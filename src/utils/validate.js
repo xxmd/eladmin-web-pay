@@ -2,6 +2,25 @@
  * Created by PanJiaChen on 16/11/18.
  */
 
+export function validatePrice(rule, value, callback) {
+  if (value === '' || value === undefined || value === null) {
+    callback() // 允许为空，由其他 required 规则控制
+    return
+  }
+  const str = String(value).trim()
+  const price = parseFloat(str)
+  if (isNaN(price) || price <= 0) {
+    callback(new Error('价格必须大于 0'))
+    return
+  }
+  const reg = /^\d+(\.\d{1,2})?$/
+  if (!reg.test(str)) {
+    callback(new Error('价格最多保留两位小数'))
+    return
+  }
+  callback()
+}
+
 /**
  * @param {string} path
  * @returns {Boolean}

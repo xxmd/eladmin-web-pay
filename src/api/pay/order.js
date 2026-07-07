@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
 export default {
-  BASE_URL: 'api/pay/merchant',
+  BASE_URL: 'api/pay/order',
 
   add: function(data) {
     return request({
@@ -24,13 +24,6 @@ export default {
       url: this.BASE_URL,
       method: 'put',
       data
-    })
-  },
-
-  findAll: function() {
-    return request({
-      url: `${this.BASE_URL}/findAll`,
-      method: 'get'
     })
   }
 }
