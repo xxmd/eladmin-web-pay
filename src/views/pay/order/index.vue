@@ -62,6 +62,7 @@
       <el-form ref="form" :model="form" :rules="rules" size="small" label-width="80px">
         <el-form-item label="所属商户" prop="merchant.id">
           <el-select
+            :disabled="crud.status.edit"
             v-model="form.merchant.id"
             filterable
             placeholder=""
@@ -76,16 +77,17 @@
           </el-select>
         </el-form-item>
         <el-form-item label="商品名称" prop="productName">
-          <el-input v-model="form.productName"/>
+          <el-input :disabled="crud.status.edit" v-model="form.productName"/>
         </el-form-item>
         <el-form-item label="商品价格" prop="productPrice">
-          <el-input v-model="form.productPrice"/>
+          <el-input :disabled="crud.status.edit" v-model="form.productPrice"/>
         </el-form-item>
         <el-form-item label="商品数量" prop="productQuantity">
-          <el-input-number v-model="form.productQuantity" :min="1" style="width: 100%"/>
+          <el-input-number :disabled="crud.status.edit" v-model="form.productQuantity" :min="1" style="width: 100%"/>
         </el-form-item>
         <el-form-item label="支付方式" prop="payMethod">
           <el-select
+            :disabled="crud.status.edit"
             v-model="form.payMethod"
             filterable
             clearable
@@ -131,12 +133,12 @@
       <el-table-column label="商品数量" prop="productQuantity"/>
       <el-table-column label="订单金额">
         <template slot-scope="scope">
-          {{computeOrderAmount(scope.row)}}
+          {{ computeOrderAmount(scope.row) }}
         </template>
       </el-table-column>
       <el-table-column label="支付方式" prop="payMethod">
         <template slot-scope="scope">
-          {{dict.label.pay_method[scope.row.payMethod]}}
+          {{ dict.label.pay_method[scope.row.payMethod] }}
         </template>
       </el-table-column>
       <el-table-column label="支付链接" prop="payUrl" show-overflow-tooltip/>
@@ -194,7 +196,7 @@ export default {
       merchantOptions: [],
       rules: {
         'merchant.id': [
-          { required: true, message: '请选择归属商户', trigger: 'select' }
+          { required: true, message: '请选择归属商户', trigger: 'change' }
         ],
         productName: [
           { required: true, message: '请输入商品名称', trigger: 'blur' }
@@ -207,7 +209,7 @@ export default {
           { required: true, message: '请输入商品数量', trigger: 'blur' }
         ],
         payMethod: [
-          { required: true, message: '请选择支付方式', trigger: 'select' }
+          { required: true, message: '请选择支付方式', trigger: 'change' }
         ]
       },
       permission: {
@@ -223,10 +225,10 @@ export default {
   methods: {
     computeOrderAmount(order) {
       if (!order) {
-        return "";
+        return ''
       }
-      const amount = order.productPrice * order.productQuantity;
-      return amount.toFixed(2);
+      const amount = order.productPrice * order.productQuantity
+      return amount.toFixed(2)
     },
     formatMerchant(merchant) {
       if (!merchant || !merchant.platform) {
