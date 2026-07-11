@@ -7,11 +7,8 @@
           <el-form-item label="平台名称">
             <el-input v-model="query.name" clearable/>
           </el-form-item>
-          <el-form-item label="平台网站">
-            <el-input v-model="query.website" clearable/>
-          </el-form-item>
-          <el-form-item label="平台接口">
-            <el-input v-model="query.endpoint" clearable/>
+          <el-form-item label="平台域名">
+            <el-input v-model="query.domainName" clearable/>
           </el-form-item>
           <el-form-item label="联系方式">
             <el-input v-model="query.contact" clearable/>
@@ -37,14 +34,17 @@
         <el-form-item label="平台名称" prop="name">
           <el-input v-model="form.name"/>
         </el-form-item>
-        <el-form-item label="平台网址" prop="website">
-          <el-input v-model="form.website"/>
-        </el-form-item>
-        <el-form-item label="平台接口" prop="endpoint">
-          <el-input v-model="form.endpoint"/>
+        <el-form-item label="平台域名" prop="domainName">
+          <el-input v-model="form.domainName"/>
         </el-form-item>
         <el-form-item label="联系方式" prop="contact">
           <el-input v-model="form.contact"/>
+        </el-form-item>
+        <el-form-item label="平台排序" prop="sort">
+          <el-input-number v-model="form.sort" :min="1" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="是否启用" prop="enable">
+          <el-switch v-model="form.enable"/>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea"/>
@@ -68,10 +68,22 @@
     >
       <el-table-column type="selection" width="55"/>
       <el-table-column label="平台名称" prop="name"/>
-      <el-table-column label="平台网址" prop="website"/>
-      <el-table-column label="平台接口" prop="endpoint"/>
+      <el-table-column label="平台域名" prop="domainName"/>
       <el-table-column label="联系方式" prop="contact"/>
-      <el-table-column label="商户数量" prop="merchantList.length"/>
+      <el-table-column label="商户数量" prop="merchantList.length">
+        <template slot-scope="scope">
+          <el-link :disabled="scope.row.merchantList.length === 0" type="primary">{{scope.row.merchantList.length}}</el-link>
+        </template>
+      </el-table-column>
+      <el-table-column label="平台排序" prop="sort"/>
+      <el-table-column label="是否启用" prop="enable">
+        <template slot-scope="scope">
+          <el-switch
+            v-model="scope.row.enable"
+            @change="changeEnabled(scope.row, scope.row.enable)"
+          />
+        </template>
+      </el-table-column>
       <el-table-column label="备注" prop="remark"/>
       <el-table-column prop="updateTime" label="更新时间"/>
       <el-table-column prop="updateBy" label="更新者"/>
@@ -101,8 +113,9 @@ import rrOperation from '@crud/RR.operation'
 import crudOperation from '@crud/CRUD.operation'
 import udOperation from '@crud/UD.operation'
 import DateRangePicker from '@/components/DateRangePicker'
+import crudUser from '@/api/system/user'
 
-const defaultForm = { id: null, name: null, endpoint: null, website: null, contact: null, remark: null }
+const defaultForm = { id: null, name: null, domainName: null, contact: null, sort: 999, enable: true, remark: null }
 export default {
   name: 'Platform',
   components: { crudOperation, rrOperation, udOperation, DateRangePicker },
@@ -111,18 +124,15 @@ export default {
   },
   mixins: [presenter(), header(), form(defaultForm), crud()],
   // 设置数据字典
-  dicts: ['dept_status'],
+  dicts: [],
   data() {
     return {
       rules: {
         name: [
           { required: true, message: '请输入平台名称', trigger: 'blur' }
         ],
-        endpoint: [
-          { required: true, message: '请输入接口地址', trigger: 'blur' }
-        ],
-        website: [
-          { required: true, message: '请输入平台网站', trigger: 'blur' }
+        domainName: [
+          { required: true, message: '请输入平台域名', trigger: 'blur' }
         ],
         contact: [
           { required: true, message: '请输入联系方式', trigger: 'blur' }
@@ -135,7 +145,26 @@ export default {
       }
     }
   },
-  methods: {}
+  methods: {
+    changeEnabled(data, val) {
+      const operation = val ? "启用" : "禁用";
+      this.$confirm('此操作将 "' + operation + '" ' + data.name + ', 是否继续？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        crudItem.edit(data).then(res => {
+          this.crud.notify(operation + '成功', CRUD.NOTIFICATION_TYPE.SUCCESS)
+        }).catch(error => {
+          this.$notify.error({
+            title: '修改平台状态异常',
+            message: error.message,
+            duration: 0
+          })
+        })
+      })
+    },
+  }
 }
 </script>
 

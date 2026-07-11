@@ -9,13 +9,13 @@
           </el-form-item>
           <el-form-item label="所属商户">
             <el-select
-              v-model="query.merchantId"
+              v-model="query.payMerchantId"
               filterable
               clearable
               placeholder=""
             >
               <el-option
-                v-for="item in merchantOptions"
+                v-for="item in payMerchantOptions"
                 :key="item.id"
                 :label="item.label"
                 :value="item.id"
@@ -28,13 +28,29 @@
           </el-form-item>
           <el-form-item label="支付方式">
             <el-select
-              v-model="query.payMethod"
+              v-model="query.methodId"
               filterable
               clearable
               placeholder=""
             >
               <el-option
-                v-for="item in dict.pay_method"
+                v-for="item in payMethodOptions"
+                :key="item.id"
+                :label="item.label"
+                :value="item.value"
+              >
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="支付状态">
+            <el-select
+              v-model="query.payStatus"
+              filterable
+              clearable
+              placeholder=""
+            >
+              <el-option
+                v-for="item in dict.pay_status"
                 :key="item.id"
                 :label="item.label"
                 :value="item.value"
@@ -62,13 +78,13 @@
       <el-form ref="form" :model="form" :rules="rules" size="small" label-width="80px">
         <el-form-item label="所属商户" prop="merchant.id">
           <el-select
-            :disabled="crud.status.edit"
-            v-model="form.merchant.id"
+            :disabled="crud.status.inEditMode"
+            v-model="form.payMerchant.id"
             filterable
             placeholder=""
           >
             <el-option
-              v-for="item in merchantOptions"
+              v-for="item in payMerchantOptions"
               :key="item.id"
               :label="item.label"
               :value="item.id"
@@ -77,24 +93,24 @@
           </el-select>
         </el-form-item>
         <el-form-item label="商品名称" prop="productName">
-          <el-input :disabled="crud.status.edit" v-model="form.productName"/>
+          <el-input :disabled="crud.status.inEditMode" v-model="form.productName"/>
         </el-form-item>
         <el-form-item label="商品价格" prop="productPrice">
-          <el-input :disabled="crud.status.edit" v-model="form.productPrice"/>
+          <el-input :disabled="crud.status.inEditMode" v-model="form.productPrice"/>
         </el-form-item>
         <el-form-item label="商品数量" prop="productQuantity">
-          <el-input-number :disabled="crud.status.edit" v-model="form.productQuantity" :min="1" style="width: 100%"/>
+          <el-input-number :disabled="crud.status.inEditMode" v-model="form.productQuantity" :min="1" style="width: 100%" />
         </el-form-item>
         <el-form-item label="支付方式" prop="payMethod">
           <el-select
-            :disabled="crud.status.edit"
+            :disabled="crud.status.inEditMode"
             v-model="form.payMethod"
             filterable
             clearable
             placeholder=""
           >
             <el-option
-              v-for="item in dict.pay_method"
+              v-for="item in payMethodOptions"
               :key="item.id"
               :label="item.label"
               :value="item.value"
@@ -125,7 +141,7 @@
       <el-table-column label="订单号" prop="orderNumber"/>
       <el-table-column label="所属商户">
         <template slot-scope="scope">
-          {{ formatMerchant(scope.row.merchant) }}
+          {{ formatPayMerchant(scope.row.payMerchant) }}
         </template>
       </el-table-column>
       <el-table-column label="商品名称" prop="productName"/>
@@ -138,10 +154,18 @@
       </el-table-column>
       <el-table-column label="支付方式" prop="payMethod">
         <template slot-scope="scope">
-          {{ dict.label.pay_method[scope.row.payMethod] }}
+          {{ scope.row.payMethod.label }}
         </template>
       </el-table-column>
       <el-table-column label="支付链接" prop="payUrl" show-overflow-tooltip/>
+      <el-table-column label="支付状态" prop="payStatus">
+        <template slot-scope="scope">
+          <el-tag :type="scope.row.payStatus === 'PAID' ? 'success' : 'danger'">
+            {{ dict.label.pay_status[scope.row.payStatus] }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="payTime" label="支付时间"/>
       <el-table-column label="备注" prop="remark"/>
       <el-table-column prop="updateTime" label="更新时间"/>
       <el-table-column prop="updateBy" label="更新者"/>
@@ -165,6 +189,7 @@
 <script>
 import crudItem from '@/api/pay/order'
 import merchantApi from '@/api/pay/merchant'
+import methodApi from '@/api/pay/method'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import CRUD, { presenter, header, form, crud } from '@crud/crud'
 import rrOperation from '@crud/RR.operation'
@@ -175,11 +200,11 @@ import { validatePrice } from '@/utils/validate'
 
 const defaultForm = {
   id: null,
-  merchant: { id: null },
+  payMerchant: { id: null },
+  payMethod: {id : null},
   productName: null,
   productPrice: null,
   productQuantity: null,
-  payMethod: null,
   remark: null
 }
 export default {
@@ -190,12 +215,13 @@ export default {
   },
   mixins: [presenter(), header(), form(defaultForm), crud()],
   // 设置数据字典
-  dicts: ['pay_method'],
+  dicts: ['pay_method', 'pay_status'],
   data() {
     return {
-      merchantOptions: [],
+      payMethodOptions: [],
+      payMerchantOptions: [],
       rules: {
-        'merchant.id': [
+        'payMerchant.id': [
           { required: true, message: '请选择归属商户', trigger: 'change' }
         ],
         productName: [
@@ -220,9 +246,21 @@ export default {
     }
   },
   created() {
-    this.loadMerchantOptions()
+    this.loadpayMerchantOptions();
+    this.loadMethodOptions();
   },
   methods: {
+    loadMethodOptions() {
+      methodApi.findAll().then(res => {
+        this.payMethodOptions = res
+      }).catch(error => {
+        this.$notify.error({
+          title: '查询支付方式列表异常',
+          message: error.message,
+          duration: 0
+        })
+      })
+    },
     computeOrderAmount(order) {
       if (!order) {
         return ''
@@ -230,16 +268,16 @@ export default {
       const amount = order.productPrice * order.productQuantity
       return amount.toFixed(2)
     },
-    formatMerchant(merchant) {
-      if (!merchant || !merchant.platform) {
+    formatPayMerchant(payMerchant) {
+      if (!payMerchant || !payMerchant.platform) {
         return ''
       }
-      return `${merchant.platform.name}_${merchant.merchantId}`
+      return `${payMerchant.platform.name}_${payMerchant.merchantId}`
     },
-    loadMerchantOptions(query) {
+    loadpayMerchantOptions(query) {
       merchantApi.findAll().then(res => {
-        this.merchantOptions = res.map(it => {
-          it.label = this.formatMerchant(it)
+        this.payMerchantOptions = res.map(it => {
+          it.label = this.formatPayMerchant(it)
           return it
         })
       }).catch(error => {

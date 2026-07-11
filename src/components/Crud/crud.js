@@ -79,6 +79,9 @@ function CRUD(options) {
       // 标题
       get title() {
         return this.add > CRUD.STATUS.NORMAL ? `新增${crud.title}` : this.edit > CRUD.STATUS.NORMAL ? `编辑${crud.title}` : crud.title
+      },
+      get inEditMode() {
+        return this.edit > 0;
       }
     },
     msg: {
