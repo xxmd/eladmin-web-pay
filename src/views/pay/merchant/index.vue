@@ -9,11 +9,7 @@
               v-model="query.platformId"
               filterable
               clearable
-              remote
-              reserve-keyword
               placeholder=""
-              :remote-method="loadPlatformOptions"
-              :loading="platformLoading"
             >
               <el-option
                 v-for="item in platformOptions"
@@ -52,11 +48,7 @@
           <el-select
             v-model="form.platform.id"
             filterable
-            remote
-            reserve-keyword
             placeholder=""
-            :remote-method="loadPlatformOptions"
-            :loading="platformLoading"
           >
             <el-option
               v-for="item in platformOptions"
@@ -73,14 +65,14 @@
         <el-form-item label="md5密钥" prop="md5SecretKey">
           <el-input v-model="form.md5SecretKey"/>
         </el-form-item>
-        <el-form-item label="支付方式" prop="payMethodList">
+        <el-form-item label="支付方式" prop="methodList">
           <el-select
-            v-model="form.payMethodList"
+            v-model="form.methodList"
             multiple
             placeholder=""
           >
             <el-option
-              v-for="item in payMethodOptions"
+              v-for="item in methodOptions"
               :key="item.id"
               :label="item.label"
               :value="item"
@@ -91,8 +83,8 @@
         <el-form-item label="商户排序" prop="sort">
           <el-input-number v-model="form.sort" :min="1" style="width: 100%"/>
         </el-form-item>
-        <el-form-item label="是否启用" prop="enable">
-          <el-switch v-model="form.enable"/>
+        <el-form-item label="是否启用" prop="enabled">
+          <el-switch v-model="form.enabled"/>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea"/>
@@ -117,17 +109,17 @@
       <el-table-column label="归属平台" prop="platform.name"/>
       <el-table-column label="商户id" prop="merchantId"/>
       <el-table-column label="md5密钥" prop="md5SecretKey"/>
-      <el-table-column label="支付方式" prop="payMethodList">
+      <el-table-column label="支付方式" prop="methodList">
         <template slot-scope="scope">
-          {{ formatMethodList(scope.row.payMethodList) }}
+          {{ formatMethodList(scope.row.methodList) }}
         </template>
       </el-table-column>
       <el-table-column label="商户排序" prop="sort"/>
-      <el-table-column label="是否启用" prop="enable">
+      <el-table-column label="是否启用" prop="enabled">
         <template slot-scope="scope">
           <el-switch
-            v-model="scope.row.enable"
-            @change="changeEnabled(scope.row, scope.row.enable)"
+            v-model="scope.row.enabled"
+            @change="changeEnabled(scope.row, scope.row.enabled)"
           />
         </template>
       </el-table-column>
@@ -167,25 +159,27 @@ const defaultForm = {
   platform: { id: null },
   merchantId: null,
   md5SecretKey: null,
-  payMethodList: [],
+  methodList: [],
   sort: 999,
-  enable: true,
+  enabled: true,
   remark: null
 }
 export default {
   name: 'Merchant',
   components: { crudOperation, rrOperation, udOperation, DateRangePicker },
   cruds() {
-    return CRUD({ title: '', url: crudItem.BASE_URL, crudMethod: { ...crudItem } })
+    return CRUD({
+      title: '', url: crudItem.BASE_URL, crudMethod: { ...crudItem },
+      queryOnPresenterCreated: false
+    })
   },
   mixins: [presenter(), header(), form(defaultForm), crud()],
   // 设置数据字典
   dicts: ['dept_status'],
   data() {
     return {
-      platformLoading: false,
       platformOptions: [],
-      payMethodOptions: [],
+      methodOptions: [],
       rules: {
         'platform.id': [
           { required: true, message: '请选择归属平台', trigger: 'change' }
@@ -199,7 +193,7 @@ export default {
         sort: [
           { required: true, message: '请输入商户排序', trigger: 'blur' }
         ],
-        enable: [
+        enabled: [
           { required: true, message: '请选择是否启用', trigger: 'change' }
         ]
       },
@@ -211,21 +205,29 @@ export default {
     }
   },
   created() {
-    this.loadPlatformOptions(null)
-    this.loadPayMethodOptions()
+    this.handleQueryParam()
+    this.loadPlatformOptions()
+    this.loadMethodOptions()
   },
   methods: {
-    formatMethodList: function(payMethodList) {
-      if (!payMethodList) {
+    handleQueryParam() {
+      const platformId = this.$route.query.platformId
+      if (platformId) {
+        this.$set(this.query, 'platformId', Number(platformId))
+        this.crud.toQuery()
+      } else {
+        this.crud.toQuery()
+      }
+    },
+    formatMethodList: function(methodList) {
+      if (!methodList) {
         return ''
       }
-      return payMethodList.map(item => item.label).join(" ");
+      return methodList.map(item => item.label).join(' ')
     },
-    loadPlatformOptions(query) {
-      platformApi.query({
-        name: query
-      }).then(res => {
-        this.platformOptions = res.content
+    loadPlatformOptions() {
+      platformApi.findAll().then(res => {
+        this.platformOptions = res
       }).catch(error => {
         this.$notify.error({
           title: '查询平台列表异常',
@@ -234,9 +236,9 @@ export default {
         })
       })
     },
-    loadPayMethodOptions() {
+    loadMethodOptions() {
       methodApi.findAll().then(res => {
-        this.payMethodOptions = res
+        this.methodOptions = res
       }).catch(error => {
         this.$notify.error({
           title: '查询支付方式列表异常',

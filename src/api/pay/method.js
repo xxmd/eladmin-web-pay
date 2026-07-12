@@ -2,6 +2,7 @@ import request from '@/utils/request'
 
 export default {
   BASE_URL: 'api/pay/method',
+
   add: function(data) {
     return request({
       url: this.BASE_URL,

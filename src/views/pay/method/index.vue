@@ -45,7 +45,7 @@
       <el-table-column label="值" prop="value"/>
       <el-table-column label="绑定商户数量">
         <template slot-scope="scope">
-          <el-link :disabled="scope.row.payMerchantList.length === 0" type="primary">{{scope.row.payMerchantList.length}}</el-link>
+          <el-link :disabled="scope.row.merchantList.length === 0" type="primary">{{scope.row.merchantList.length}}</el-link>
         </template>
       </el-table-column>
       <el-table-column label="备注" prop="remark"/>
@@ -61,7 +61,7 @@
           <udOperation
             :data="scope.row"
             :permission="permission"
-            :disabled-dle="scope.row.payMerchantList.length > 0"
+            :disabled-dle="scope.row.merchantList.length > 0"
           />
         </template>
       </el-table-column>

@@ -41,10 +41,10 @@
           <el-input v-model="form.contact"/>
         </el-form-item>
         <el-form-item label="平台排序" prop="sort">
-          <el-input-number v-model="form.sort" :min="1" style="width: 100%" />
+          <el-input-number v-model="form.sort" :min="1" style="width: 100%"/>
         </el-form-item>
-        <el-form-item label="是否启用" prop="enable">
-          <el-switch v-model="form.enable"/>
+        <el-form-item label="是否启用" prop="enabled">
+          <el-switch v-model="form.enabled"/>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea"/>
@@ -72,15 +72,17 @@
       <el-table-column label="联系方式" prop="contact"/>
       <el-table-column label="商户数量" prop="merchantList.length">
         <template slot-scope="scope">
-          <el-link :disabled="scope.row.merchantList.length === 0" type="primary">{{scope.row.merchantList.length}}</el-link>
+          <el-link :disabled="scope.row.merchantList.length === 0" type="primary" @click="toMerchantPage(scope.row)">
+            {{ scope.row.merchantList.length }}
+          </el-link>
         </template>
       </el-table-column>
       <el-table-column label="平台排序" prop="sort"/>
-      <el-table-column label="是否启用" prop="enable">
+      <el-table-column label="是否启用" prop="enabled">
         <template slot-scope="scope">
           <el-switch
-            v-model="scope.row.enable"
-            @change="changeEnabled(scope.row, scope.row.enable)"
+            v-model="scope.row.enabled"
+            @change="changeEnabled(scope.row, scope.row.enabled)"
           />
         </template>
       </el-table-column>
@@ -115,7 +117,7 @@ import udOperation from '@crud/UD.operation'
 import DateRangePicker from '@/components/DateRangePicker'
 import crudUser from '@/api/system/user'
 
-const defaultForm = { id: null, name: null, domainName: null, contact: null, sort: 999, enable: true, remark: null }
+const defaultForm = { id: null, name: null, domainName: null, contact: null, sort: 999, enabled: true, remark: null }
 export default {
   name: 'Platform',
   components: { crudOperation, rrOperation, udOperation, DateRangePicker },
@@ -146,8 +148,16 @@ export default {
     }
   },
   methods: {
+    toMerchantPage(row) {
+      this.$router.push({
+        path: '/pay/merchant',
+        query: {
+          platformId: row.id
+        }
+      })
+    },
     changeEnabled(data, val) {
-      const operation = val ? "启用" : "禁用";
+      const operation = val ? '启用' : '禁用'
       this.$confirm('此操作将 "' + operation + '" ' + data.name + ', 是否继续？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
@@ -163,7 +173,7 @@ export default {
           })
         })
       })
-    },
+    }
   }
 }
 </script>

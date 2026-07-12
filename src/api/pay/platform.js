@@ -30,6 +30,12 @@ export default {
       method: 'get',
       params: data
     })
+  },
+  findAll: function() {
+    return request({
+      url: this.BASE_URL + '/findAll',
+      method: 'get'
+    })
   }
 }
 
